@@ -7,6 +7,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.hibernate.annotations.DialectOverride;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,17 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY ="jShGbwqTzzt69QxkEOVEAZ640OfHEC2XmZvC+p9zRL0HS66c6VuInGaq9jfYqsQjO5dHwQ/9OD0xzkOpUCa/TfRfZLYJw+0/bC1p6HIUlJCXm09f89a7/P6FZg/1ztNv56EOydWUSjtfW5l0snx/Sv7RFPOEqwFNAKEbsson+BYEL7a2ynTZTGyDMLpmgxdyfCCiWlb5DQFLvxnm3e+Ot0opd7YEBSWtxIJA1F5kE9isbWfebBHrh+sWFF+TEwXDxAD/d3YCjb1QQc5y73pDqepRiox97I/uLn82odNNxsQkOvgrhmspQVGhm7ebv+Q+gh0DaQMIkrUVvZuENkFAMHo/SZX+a9xc+Q1kkVC729A=\n";
+
+    @Value("${application.security.jwt.secret-key}")
+    private String secretKey;
+
+    @Value("${application.security.jwt.expiration}")
+    private long jwtExpiration;
+
+    @Value("${application.security.jwt.refresh-token.expiration}")
+    private long refreshExpiration;
+
+
     public String extractUsername(String token) {
         return extractClaim(token,Claims::getSubject);
     }
@@ -32,6 +43,7 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails){
+
         return  generateToken(new HashMap<>(),userDetails);
     }
 
@@ -54,12 +66,29 @@ public class JwtService {
     Map<String,Object> extraClaims,
     UserDetails userDetails
             ){
+
+        return buildToken(extraClaims, userDetails, jwtExpiration);
+
+    }
+
+    public String generateRefreshToken(
+            UserDetails userDetails
+    ) {
+        return buildToken(new HashMap<>(), userDetails, refreshExpiration);
+    }
+
+    private String buildToken(Map<String,Object> extraClaims,
+                              UserDetails userDetails,
+                              long expiration
+
+
+    ){
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis()+ 1000 * 60 * 24))
+                .setExpiration(new Date(System.currentTimeMillis()+ expiration))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -76,7 +105,7 @@ public class JwtService {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
 
         return Keys.hmacShaKeyFor(keyBytes);
     }
