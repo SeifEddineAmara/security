@@ -11,14 +11,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 @Builder
-@AllArgsConstructor
-@EqualsAndHashCode
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "tbl_user")
+@Table(name = "_user")
 public class User implements UserDetails {
 
     @Id
@@ -35,9 +33,10 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
 
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.name()));
+        return role.getAuthorities();
     }
 
     @Override
